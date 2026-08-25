@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IMXP — Fundraise Deck</title>
+<meta name="description" content="IMXP — Immersive Experiences at Global Scale. Fundraise Deck." />
+<meta property="og:title" content="IMXP — Fundraise Deck" />
+<meta property="og:description" content="Immersive Experiences at Global Scale." />
+<meta property="og:image" content="slides/slide-01.png" />
+<meta name="theme-color" content="#000000" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='black'/><text y='72' x='50' font-size='60' font-family='Arial' font-weight='bold' fill='white' text-anchor='middle'>i</text></svg>" />
+<style>
+  :root { --bg:#000; --fg:#fff; --dim:rgba(255,255,255,.45); --line:rgba(255,255,255,.18); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  #stage {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #000;
+  }
+  #slide {
+    max-width: 100vw; max-height: 100vh; width: auto; height: auto;
+    aspect-ratio: 16 / 9; object-fit: contain; display: block;
+    box-shadow: 0 10px 60px rgba(0,0,0,.6);
+  }
+  /* click zones for prev / next */
+  .zone { position: fixed; top: 0; bottom: 60px; width: 33%; z-index: 20; cursor: pointer; }
+  .zone.prev { left: 0; }
+  .zone.next { right: 0; width: 67%; }
+  /* controls */
+  #bar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 52px; z-index: 40;
+    display: flex; align-items: center; gap: 16px; padding: 0 18px;
+    background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));
+    opacity: 0; transition: opacity .25s ease; pointer-events: none;
+  }
+  body:hover #bar, #bar.show { opacity: 1; pointer-events: auto; }
+  #counter { font-variant-numeric: tabular-nums; font-size: 13px; letter-spacing: .04em; color: var(--fg); min-width: 62px; }
+  #progress { flex: 1; display: flex; gap: 4px; align-items: center; }
+  .seg { flex: 1; height: 3px; background: var(--line); border-radius: 2px; cursor: pointer; transition: background .15s; }
+  .seg.on { background: var(--fg); }
+  .seg:hover { background: rgba(255,255,255,.7); }
+  .btn {
+    background: none; border: 1px solid var(--line); color: var(--fg);
+    width: 34px; height: 30px; border-radius: 7px; cursor: pointer; font-size: 15px;
+    display: inline-flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+  /* loading */
+  #loader { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #000; z-index: 60; transition: opacity .3s; }
+  #loader.hide { opacity: 0; pointer-events: none; }
+  .spin { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: r 1s linear infinite; }
+  @keyframes r { to { transform: rotate(360deg); } }
+  /* hint */
+  #hint { position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); z-index: 40;
+    font-size: 12px; color: var(--dim); letter-spacing: .04em; transition: opacity .5s; }
+  @media (max-width: 640px) { #hint { display: none; } .zone { bottom: 52px; } }
+</style>
+</head>
+<body>
+  <div id="loader"><div class="spin"></div></div>
+  <div id="stage"><img id="slide" alt="IMXP Fundraise Deck slide" /></div>
+
+  <div class="zone prev" id="zprev" aria-label="Previous slide"></div>
+  <div class="zone next" id="znext" aria-label="Next slide"></div>
+
+  <div id="hint">Use ← → arrows or click to navigate · F for fullscreen</div>
+
+  <div id="bar">
+    <button class="btn" id="bprev" aria-label="Previous">‹</button>
+    <span id="counter">01 / 23</span>
+    <div id="progress"></div>
+    <button class="btn" id="bfull" aria-label="Fullscreen">⛶</button>
+  </div>
+
+<script>
+  var TOTAL = 23;
+  var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  var src = function (n) { return 'slides/slide-' + pad(n) + '.png'; };
+
+  var img = document.getElementById('slide');
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+  var loader = document.getElementById('loader');
+  var hint = document.getElementById('hint');
+  var i = 1;
+
+  // build progress segments
+  var segs = [];
+  for (var s = 1; s <= TOTAL; s++) {
+    var d = document.createElement('div');
+    d.className = 'seg';
+    d.dataset.n = s;
+    d.addEventListener('click', (function (n) { return function (e) { e.stopPropagation(); go(n); }; })(s));
+    progress.appendChild(d);
+    segs.push(d);
+  }
+
+  function render() {
+    img.src = src(i);
+    counter.textContent = pad(i) + ' / ' + TOTAL;
+    for (var k = 0; k < segs.length; k++) segs[k].classList.toggle('on', (k + 1) <= i);
+    if (location.hash !== '#' + i) history.replaceState(null, '', '#' + i);
+    preload(i + 1); preload(i + 2);
+  }
+  var cache = {};
+  function preload(n) { if (n < 1 || n > TOTAL || cache[n]) return; var p = new Image(); p.src = src(n); cache[n] = p; }
+
+  function go(n) { i = Math.max(1, Math.min(TOTAL, n)); render(); }
+  function next() { if (i < TOTAL) go(i + 1); }
+  function prev() { if (i > 1) go(i - 1); }
+
+  document.getElementById('znext').addEventListener('click', next);
+  document.getElementById('zprev').addEventListener('click', prev);
+  document.getElementById('bnext') && document.getElementById('bnext').addEventListener('click', next);
+  document.getElementById('bprev').addEventListener('click', function (e) { e.stopPropagation(); prev(); });
+  document.getElementById('bfull').addEventListener('click', function (e) { e.stopPropagation(); toggleFull(); });
+
+  function toggleFull() {
+    if (!document.fullscreenElement) { (document.documentElement.requestFullscreen || function(){})().catch && document.documentElement.requestFullscreen().catch(function(){}); }
+    else { document.exitFullscreen && document.exitFullscreen(); }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': next(); e.preventDefault(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': prev(); e.preventDefault(); break;
+      case 'Home': go(1); break;
+      case 'End': go(TOTAL); break;
+      case 'f': case 'F': toggleFull(); break;
+    }
+  });
+
+  // swipe (touch)
+  var tx = 0;
+  document.addEventListener('touchstart', function (e) { tx = e.changedTouches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); }
+  }, { passive: true });
+
+  img.addEventListener('load', function () { loader.classList.add('hide'); });
+  img.addEventListener('error', function () { loader.classList.add('hide'); });
+
+  // deep-link via hash
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  if (start >= 1 && start <= TOTAL) i = start;
+  render();
+
+  // hide hint after a bit
+  setTimeout(function () { hint.style.opacity = '0'; }, 4200);
+</script>
+</body>
+</html>
