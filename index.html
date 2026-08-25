@@ -60,9 +60,39 @@
   #hint { position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%); z-index: 40;
     font-size: 12px; color: var(--dim); letter-spacing: .04em; transition: opacity .5s; }
   @media (max-width: 640px) { #hint { display: none; } .zone { bottom: 52px; } }
+  /* email gate (demo, front-end only) */
+  #gate { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #000; padding: 24px; }
+  #gate.hide { display: none; }
+  #gate .card { width: min(420px, 92vw); text-align: center; color: #fff; }
+  #gate .glogo { font-weight: 800; font-size: 34px; letter-spacing: .02em; margin-bottom: 6px; }
+  #gate .gsub { color: rgba(255,255,255,.5); font-size: 12px; letter-spacing: .3em; text-transform: uppercase; margin-bottom: 28px; }
+  #gate h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  #gate p { color: rgba(255,255,255,.6); font-size: 14px; line-height: 1.5; margin-bottom: 22px; }
+  #gate form { display: flex; flex-direction: column; gap: 12px; }
+  #gate input { width: 100%; padding: 13px 15px; border-radius: 9px; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06); color: #fff; font-size: 15px; outline: none; }
+  #gate input:focus { border-color: rgba(255,255,255,.55); }
+  #gate input::placeholder { color: rgba(255,255,255,.4); }
+  #gate button { width: 100%; padding: 13px; border-radius: 9px; border: none; cursor: pointer; background: #fff; color: #000; font-size: 15px; font-weight: 600; transition: opacity .15s; }
+  #gate button:hover { opacity: .85; }
+  #gate .err { color: #ff6b6b; font-size: 13px; min-height: 16px; text-align: left; }
+  #gate .fine { color: rgba(255,255,255,.35); font-size: 11px; margin-top: 16px; line-height: 1.5; }
 </style>
 </head>
 <body>
+  <div id="gate">
+    <div class="card">
+      <div class="glogo">IMXP</div>
+      <div class="gsub">Fundraise Deck</div>
+      <h2>View the deck</h2>
+      <p>Enter your email to continue.</p>
+      <form id="gateForm" novalidate>
+        <input id="gateEmail" type="email" placeholder="you@company.com" autocomplete="email" />
+        <div class="err" id="gateErr"></div>
+        <button type="submit">View deck →</button>
+      </form>
+      <div class="fine">Demo only · nothing is sent or saved to a server.</div>
+    </div>
+  </div>
   <div id="loader"><div class="spin"></div></div>
   <div id="stage"><img id="slide" alt="IMXP Fundraise Deck slide" /></div>
 
@@ -154,6 +184,26 @@
 
   // hide hint after a bit
   setTimeout(function () { hint.style.opacity = '0'; }, 4200);
+</script>
+<script>
+  // email gate (demo only, front-end)
+  (function () {
+    var KEY = 'imxp_demo_unlocked';
+    var gate = document.getElementById('gate');
+    if (localStorage.getItem(KEY)) { gate.classList.add('hide'); return; }
+    var form = document.getElementById('gateForm');
+    var email = document.getElementById('gateEmail');
+    var err = document.getElementById('gateErr');
+    var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = email.value.trim();
+      if (!re.test(v)) { err.textContent = 'Please enter a valid email address.'; email.focus(); return; }
+      try { localStorage.setItem(KEY, '1'); } catch (_) {}
+      gate.classList.add('hide');
+    });
+    email.focus();
+  })();
 </script>
 </body>
 </html>
